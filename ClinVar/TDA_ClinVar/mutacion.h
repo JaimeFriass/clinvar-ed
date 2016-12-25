@@ -185,6 +185,12 @@ public:
 	 */
 	bool operator<(const mutacion & m) const;      //El orden viene determinado por Chr y pos. El primer criterio es el número de cromosoma. El orden para el número de cromosoma se rige por "1"<"2"<"3"<...<"22"<"X"<"Y"<"MT". Dos mutaciones del mismo cromosoma deben ordenarse según su posición, de menor posición a mayor (orden natural de enteros).
 	bool operator>(const mutacion & m) const;
+	/**
+	 @brief Devuelve si alguna de las enfermedades de la mutacion contiene str
+	 @param str cadena a buscar
+	 @returns encontrado	bool que indica si contiene o no str
+	*/
+	bool nameContains(const string & str) const;
 };
 
 /**

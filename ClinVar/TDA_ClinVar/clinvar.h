@@ -33,12 +33,18 @@ public:
 	class gen_iterator {
 	public:
 		const mutacion & operator*(); //const - no se puede modificar la mutacion y alterar el orden del set
+		gen_iterator &operator++();
+		IDgen getID();
 	private:
 		map<IDgen, list< set<mutacion>::iterator> > >::iterator itmap;
 		list<set<mutacion>::iterator> >::iterator itlist;
 		clinvar *ptrclinvar;
 	};
 
+	class ProbMutaciones {
+	public:
+		bool operator() (const mutacion& m1, const mutacion& m2) const;
+	};
 
     void load (string nombreDB);
     void insert (const mutacion & x);

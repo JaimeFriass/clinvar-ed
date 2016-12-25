@@ -5,6 +5,14 @@
 
 using namespace std;
 
+bool clinvar::ProbMutaciones::operator() (const mutacion& m1, const mutacion& m2) const {
+	vector<float> vector_m1 = m1.getCaf();
+	vector<float> vector_m2 = m2.getCaf();
+
+	return 1-vector_m1[0] > 1-vector_m2[0];
+
+}
+
 // Lee los elementos de un fichero dado por el argumento nombreDB
 void clinvar::load (string nombreDB) {
 
@@ -93,12 +101,87 @@ set<IDmut> clinvar::getMutacionesEnf (IDenf ID) {
 
 // Devuelve un conjunto de todas las mutaciones que se encuentran asociadas a un gen determinado
 // dado por ID. Si no tuviese ninguno, devuelve el conjunto vacío.
+// map<IDgen, list< set<mutacion>::iterator> > gen_map;
 set<IDmut> clinvar::getMutacionesGen (IDgen ID) {
 	set<IDmut> conjunto;
 	gen_iterator itr;
 
-	for (itr = gen_map.begin(); itr != gen_map.end(); itr++) {
-		if 
+	for (itr = gbegin(); itr != gend(); itr++) {
+		if (itr.getID == ID) {
+			conjunto.push_back((*itr).getID());
+		}
 	}
 }
-set<mutacion,ProbMutaciones> topKMutaciones (int k, string keyword);
+
+// Dado un string keyword devuelve todas las enfermedades cuyo nombre contiene keyword
+set<mutacion,ProbMutaciones> clinvar::topKMutaciones (int k, string keyword) {
+	
+}
+
+// *******************      ITERATOR      *************************************
+
+clinvar::iterator clinvar::begin() {
+	return mutDB.begin();
+}
+
+clinvar::iterator clinvar::end() {
+	return mutDB.end();
+}
+
+clinvar::iterator clinvar::lower_bound(string cromosoma, unsigned int posicion) {
+	iterator itr = end();
+	bool encontrado = false;
+
+	for (iterator iter = begin(); iter != end() && !encontrado; iter++) {
+		if ( )
+	}
+}
+
+clinvar::iterator clinvar::upper_bound(string cromosoma, unsigned int posicion) {
+
+}
+// *******************      ENFERMEDAD_ITERATOR      **************************
+
+clinvar::enfermedad_iterator clinvar::ebegin() {
+	return EnfDB.begin();
+}
+
+clinvar::enfermedad_iterator clinvar::eend() {
+	return EnfDB.end();
+}
+
+
+// *******************      GEN_ITERATOR      *********************************
+
+const mutacion &clinvar::iterator::operator*() {
+	return *(*itlist);
+}
+
+clinvar::gen_iterator clinvar::gen_iterator::operator++() {
+	this->itlist += 1;
+	if (this->itlist == gen_map->second.end()) {
+		this->itmap++;
+		this->itlist = this->itmap.begin();
+	}
+	return *this;
+}
+
+// Devuelve el ID de el gen al que apunta gen_iterator
+IDgen clinvar::gen_iterator::getID() {
+	return itmap->first;
+}
+
+clinvar::gen_iterator clinvar::gbegin() {
+	gen_iterator gen_itr;
+	gen_itr.itmap = gen_map.begin();
+	gen_itr.ptrclinvar = (*this);
+	return gen_itr;
+}
+
+clinvar::gen_iterator clinvar::gend() {
+	gen_iterator gen_itr;
+	gen_itr.itmap = gen_map.end();
+	gen_itr.ptrclinvar = (*this);
+	return gen_itr;
+}
+

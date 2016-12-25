@@ -555,6 +555,16 @@ string mutacion::imprime_Enfermedades() const{
 	return hola;
 }
 
+bool mutacion::nameContains(const string & str) const {
+	vector<enfermedades> array;
+	bool encontrado = false;
+	for (int i = 0; i < enfermedades.size() || !encontrado; i++) {
+		if (enfermedades[i].nameContains(str))
+			encontrado = true;
+	}
+	return encontrado;
+}
+
 ostream& operator<< ( ostream& os, const mutacion& m) {
 	os << m.getID() << "\t" << m.getChr() << "\t" << m.getPos() << "\t" << m.imprime_Ref() << "\t" << m.imprime_Genes()
 	<< "\t" << m.getCommon() << "\t" << m.imprime_Caf() << "\t" << m.imprime_Enfermedades() << "\t" << endl;
