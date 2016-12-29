@@ -14,6 +14,7 @@
 using namespace std;
 
 #include "mutacion.h"
+#include "enfermedad.h"
 
 typedef string IDgen;
 typedef string IDmut;

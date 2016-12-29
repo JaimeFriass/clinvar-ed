@@ -1,7 +1,17 @@
 
-
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <queue>
+#include <set>
+#include <map>
+#include <list>
+#include <unordered_map>
+#include <unordered_set>
 using namespace std;
-
+#include "mutacion.h"
+#include "enfermedad.h"
 #include "clinvar.h"
 
 bool clinvar::ProbMutaciones::operator() (const mutacion& m1, const mutacion& m2) const {

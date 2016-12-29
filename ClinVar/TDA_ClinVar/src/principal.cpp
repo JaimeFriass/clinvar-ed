@@ -8,7 +8,9 @@ using namespace std;
 #include "enfermedad.h"
 
 int main (int argc, char *argv[] ) {
-	clinvar clv("clinvar_20160831.vcf");
+	//clinvar clv("clinvar_20160831.vcf");
+	enfermedad enfe;
+	cout << enfe.imprime_Enf() << endl;
 
 	// Imprimimos el número de elementos almacenados en clv
 	//cout << "Lectura del fichero finalizada. Mutaciones cargadas: " << clv.size() << endl;

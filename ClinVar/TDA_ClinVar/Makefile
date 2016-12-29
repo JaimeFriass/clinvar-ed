@@ -1,18 +1,20 @@
+CPPFLAGS = g++ -std=c++11 -c
 
-.PHONY : all
+# EJECUTABLES
 
-INC = include
-BIN = bin
-SRC = src
-OBJ = obj
+bin/principal: obj/principal.o obj/enfermedad.o obj/mutacion.o obj/clinvar.o
+		g++ -std=c++11 -o bin/principal obj/enfermedad.o obj/mutacion.o obj/clinvar.o
 
-CXX = g++
-CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -c -o4 -g -I$(INC)/
+# ARCHIVOS OBJETO
 
-all : $(BIN)/principal
+obj/principal.o: src/principal.cpp
+	$(CPPFLAGS) -Iinclude src/principal.cpp -o obj/pincipal.o
 
-$(BIN)/principal : $(OBJ)/principal.o 
-	$(CXX) -o $@ $<
+obj/clinvar.o: src/clinvar.cpp include/clinvar.h
+	$(CPPFLAGS) -Iinclude src/clinvar.cpp -o obj/clinvar.o
 
-$(OBJ)/principal.o : $(SRC)/principal.cpp $(SRC)/clinvar.cpp $(SRC)/mutacion.cpp $(SRC)/enfermedad.cpp $(INC)/mutacion.h $(INC)/enfermedad.h $(INC)/clinvar.h
-	$(CXX) $(CXXFLAGS) $< -o $@
+obj/enfermedad.o: src/enfermedad.cpp include/enfermedad.h
+	$(CPPFLAGS) -Iinclude src/enfermedad.cpp -o obj/enfermedad.o
+
+obj/mutacion.o: src/mutacion.cpp include/mutacion.h
+	$(CPPFLAGS) -Iinclude src/mutacion.cpp -o obj/mutacion.o
