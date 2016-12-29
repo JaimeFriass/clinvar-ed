@@ -1,25 +1,18 @@
-CPPFLAGS = g++ -std=c++11 -c
 
-#Creación de ejecutables
+.PHONY : all
 
-principal : principal.o enfermedad.o mutacion.o 
-	g++ -o principal principal.o enfermedad.o mutacion.o  
+INC = include
+BIN = bin
+SRC = src
+OBJ = obj
 
-#Creación de archivos objeto
+CXX = g++
+CXXFLAGS = -Wall -Wextra -pedantic -std=c++11 -c -o4 -g -I$(INC)/
 
-principal.o: principal.cpp conjunto.h
-	$(CPPFLAGS) principal.cpp -o principal.o -I.
+all : $(BIN)/principal
 
-enfermedad.o: enfermedad.cpp
-	$(CPPFLAGS) enfermedad.cpp -o enfermedad.o -I.
+$(BIN)/principal : $(OBJ)/principal.o 
+	$(CXX) -o $@ $<
 
-mutacion.o: mutacion.cpp
-	$(CPPFLAGS) mutacion.cpp -o mutacion.o -I.
-
-#Limpieza de archivos objeto, ejecutables y bibliotecas
-
-clean:
-	echo "Limpiando..."
-	rm *.o
-mrproper: clean
-	rm principal
+$(OBJ)/principal.o : $(SRC)/principal.cpp $(SRC)/clinvar.cpp $(SRC)/mutacion.cpp $(SRC)/enfermedad.cpp $(INC)/mutacion.h $(INC)/enfermedad.h $(INC)/clinvar.h
+	$(CXX) $(CXXFLAGS) $< -o $@
