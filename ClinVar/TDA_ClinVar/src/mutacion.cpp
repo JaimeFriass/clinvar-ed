@@ -24,7 +24,7 @@ mutacion::mutacion(const mutacion& m){
 	common = m.getCommon();
 	clnsig = getClnsig();
 }
-
+ 
 //para crear objeto mutacion a partir de la cadena que contiene una línea completa del fichero de entrada
 mutacion::mutacion(const string & str){
 	bool extras = false;
@@ -32,7 +32,7 @@ mutacion::mutacion(const string & str){
 	int j = 0;
 	int i = 0;
 
-	cerr << "Invocado constructor mutacion::mutacion(str)" << endl;
+	//cerr << "Invocado constructor mutacion::mutacion(str)" << endl;
 	// OBTENER CHR
 	(*this).chr = str.substr(0,1);
 	//cerr<< "\tchr: "<<(*this).chr<<endl; 
@@ -467,53 +467,44 @@ mutacion & mutacion::operator = (const mutacion & m){
 	return *this;
 }
 
+int mutacion::getCromosoma() const {
+	int num;
+	if (chr == "X") num=23;
+	else if (chr == "Y") num=24;
+	else if (chr == "MT") num=25;
+	else num = stoi(chr);
+	return num;
+}
+
 bool mutacion::operator == (const mutacion & m) const{
 	bool iguales = false;
-	if(this != &m){
-		if(m.ID.size() == ID.size() &&
-		   chr.size() == m.chr.size() &&
-		   pos == m.pos &&
-		   ref_alt.size() == m.ref_alt.size() &&
-		   genes.size() == m.genes.size() &&
-		   common == m.common &&
-		   m.caf.size() == caf.size() &&
-		   enfermedades.size() == m.enfermedades.size() &&
-		   clnsig.size() == m.clnsig.size() )
+	if (this->ID == m.getID() && this->chr == m.getChr())
+		if (this->pos == m.getPos())
 			iguales = true;
-
-		else
-			iguales=false;
-	}
-	else
-		iguales =true;
-
+		
 	return iguales;
 }
 
 bool mutacion::operator < (const mutacion & m) const{
 	bool menor = false;
-
-	if(this != &m){
-		if ((getPos()) < m.getPos()){
-			if(chr.compare(m.getChr()) < 0){
-				menor = true;
-			}
+	if (getCromosoma() < m.getCromosoma() ) {
+		menor = true;
+	} else if (getCromosoma() == m.getCromosoma() ) {
+		if ( this->pos < m.getPos() ) {
+			menor = true;
 		}
 	}
-
 	return menor;
 }
-bool mutacion::operator > (const mutacion &m )const{
+bool mutacion::operator > (const mutacion &m ) const{
 	bool mayor = false;
-
-	if(this != &m){
-		if ((getPos()) > m.getPos()){
-			if(chr.compare(m.getChr()) < 0){
-				mayor = true;
-			}
+	if (getCromosoma() > m.getCromosoma() ) {
+		mayor = true;
+	} else if (getCromosoma() == m.getCromosoma() ) {
+		if ( this->pos > m.getPos() ) {
+			mayor = true;
 		}
 	}
-
 	return mayor;
 }
 

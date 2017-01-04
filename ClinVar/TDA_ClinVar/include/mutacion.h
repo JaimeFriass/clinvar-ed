@@ -178,9 +178,14 @@ public:
 	 */
 	mutacion & operator=(const mutacion & m);
 	/**
+	 @brief Obtiene el cromosoma en forma de entero
+
+	 @param m	mutación a comparar	 @returns iguales
+	 */
+	int getCromosoma() const;
+	/**
 	 @brief Sobrecarga el operador == para compararlo con una mutación
-	 @param m	mutación a comparar
-	 @returns iguales
+	 @returns num	numero del cromosoma resultante
 	 */
 	bool operator==(const mutacion & m) const;
 	/**

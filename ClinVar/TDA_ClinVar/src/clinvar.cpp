@@ -17,23 +17,22 @@ using namespace std;
 bool clinvar::ProbMutaciones::operator() (const mutacion& m1, const mutacion& m2) const {
 	vector<float> vector_m1 = m1.getCaf();
 	vector<float> vector_m2 = m2.getCaf();
-
-	return 1-vector_m1[0] > 1-vector_m2[0];
+	return (1-vector_m1[0]) > (1-vector_m2[0]);
 
 }
 
 clinvar::clinvar(string nombreDB) {
 	load(nombreDB);
 }
-// Lee los elementos de un fichero dado por el argumento nombreDB
+
 void clinvar::load (string nombreDB) {
 	ifstream fe;
 	string cadena;
-
 	cout << "Abrimos " << nombreDB << endl;
+	// fe.open(nombreDB);
 	fe.open(nombreDB.c_str(), ifstream::in);
-
 	if (fe.fail()) {
+	// if (!fe) {
 		cerr << "Error al abrir el fichero " << nombreDB << endl;
 	}
 	else {
@@ -43,73 +42,159 @@ void clinvar::load (string nombreDB) {
 		} while (cadena.find('#') != string::npos && !fe.eof() );
 
 		// Se lee la tabla de mutaciones, una línea cada vez
-		while ( !fe.eof() ) {
-			cout << "Leo : " << cadena << endl;
+		while ( !fe.eof()) {
 			// Invoco el constructor de mutación
 			mutacion mut = mutacion(cadena);
+			cout << "Añadida mutación: " << mut.getID();
 			// Insertamos la mutación en clinvar
 			insert(mut);
 			getline(fe, cadena, '\n');
 		}
 		fe.close();
+
 	}
 	fe.close();
 }
 
-// Inserta una mutación en su lugar correspondiente
-void clinvar::insert (const mutacion & x) {
-	for (iterator itr(mutDB.begin()); itr != end(); itr++) {
-		if ( (*itr) < x) {
-			itr++;
-			if ( (*itr) > x) {
-				itr--;
-				// mutDB.insert(itr, x);
-			}
-		}
+void clinvar::imprimirEnfDB() {
+	enfermedad_iterator itr;
+	cout << "----------- ENFDB --------------" << endl;
+	for (itr = ebegin(); itr != eend(); itr++) {
+		cout << "\t" << (*itr).second.getID() << endl;
 	}
 }
 
-// Borra una mutación de la base de datos dado su id:
-// Devuelve verdadero si se ha borrado correctamente, falso si no.
-// No solo borra la mutacion del repositorio principal sino que ademas se
-// encarga de borrar toda la referencia a dicho elemento dentro de el.
-// En El caso de que una enfermedad estuviese asociada unicamente a la mutacion que 
-// esta siendo eliminada, esta enfermedad tambien debe eliminarse de Clinvar.
+void clinvar::imprimirMutDB() {
+	cout << "----------- MUTDB --------------" << endl;
+	for (iterator itr(begin()); itr != end(); itr++) {
+		cout << "\t" << (*itr).getID() << endl;
+	}
+}
+
+void clinvar::imprimirGenMap() {
+	cout << "------------GEN MAP --------------" << endl;
+	map<IDgen, list< set<mutacion>::iterator> >::iterator itr = gen_map.begin();
+	list < set<mutacion>::iterator >::iterator itr_list;
+	for (itr = gen_map.begin(); itr != gen_map.end(); itr++) {
+		cout << "\tID: " << (*itr).first << endl;
+		for ( itr_list = ((*itr).second).begin() ; itr_list != (*itr).second.end(); itr_list++)
+			cout << "\t\t" << (*(*itr_list)).getID() << endl;
+	}
+	cout << "\n";
+}
+
+void clinvar::insert (const mutacion & x) {
+
+	set<mutacion>::iterator itr;
+	pair< set<mutacion>::iterator , bool > mut_insertada;
+
+	mut_insertada = mutDB.insert(x);
+	itr = mut_insertada.first;		// Guardamos el LUGAR DONDE SE HA INSERTADO
+
+	// Insertamos en IDm_map
+	pair<IDmut, set<mutacion>::iterator> mut_a_insertar;
+	mut_a_insertar.first = x.getID();
+	mut_a_insertar.second = itr;
+	IDm_map.insert(mut_a_insertar);
+
+	vector<enfermedad> aux_enf = x.getEnfermedades();   // Al ser privadas las enfermedades lo guardamos en un auxiliar
+	vector<enfermedad>::iterator enf_itr;
+	pair< map<IDenf, enfermedad>::iterator , bool > enf_insertada;
+	pair<IDenf, enfermedad> enfermedad_a_insertar;		// Par para insertar en EnfDB
+	pair<IDenf, set<mutacion>::iterator> mut_asociadas;	// Par para insertar luego en IDenf_map
+
+	for (int i = 0; i < aux_enf.size() ; i++) {
+		enfermedad_a_insertar.first = aux_enf[i].getID();
+		enfermedad_a_insertar.second = aux_enf[i];
+		enf_insertada = EnfDB.insert(enfermedad_a_insertar);	// Insertamos en EnfDB
+		// cout << "\t[INSERT] Enfermedad " << aux_enf[i].getName() << " insertada en EnfDB: " << enf_insertada.second << endl;
+
+		mut_asociadas.first = aux_enf[i].getID();
+		mut_asociadas.second = itr;    // Lugar donde se insertó la mutación previamente
+		IDenf_map.insert(mut_asociadas);  // Insertamos en ID_ENF_MAP
+
+	}
+	cout << "\n\n";
+
+	// Insertamos genes de la mutacion en GEN_MAP
+	vector<string> genes = x.getGenes();
+	// cerr << "[INSERT] Insertamos " << genes.size() << " genes: " << endl;
+	for (int i = 0; i < genes.size(); i++) {
+		// cerr << "\t[INSERT] Insertado gen " << genes[i] << endl;
+		addGen(genes[i], itr);
+	}
+
+}
+void clinvar::addGen(IDgen ID, set<mutacion>::iterator itr ) {
+	map < IDgen, list < set<mutacion>::iterator > >::iterator iter_map;
+	list < set<mutacion>::iterator > lista;
+	bool encontrado = false;
+
+	// Si encuentra ya una key con IDgen, inserta el iterador argumentado a su correspondiente lista
+	for (iter_map = gen_map.begin(); iter_map != gen_map.end(); iter_map++) {
+		if ( (*iter_map).first == ID) {
+			((*iter_map).second).push_back(itr);
+			encontrado = true;
+		}
+	}
+	// Si no hay una key de IDgen, se crea una con el iterador argumentado
+	if (!encontrado) {
+		lista.push_back(itr);
+		pair<IDgen, list< set<mutacion>::iterator> > par;
+		par.first = ID;
+		par.second = lista;
+		// Se inserta en gen_map
+		gen_map.insert(par);
+	}
+}
+
 bool clinvar::erase (IDmut ID) {
 	bool borrado = false;
-	for (iterator itr = begin(); itr != end() || borrado; itr++) {
-		if ( (*itr).getID() == ID)
-			if (mutDB.erase(*itr) == 1)
-				borrado = true;
+	iterator itr(find_Mut(ID));
+	vector<enfermedad> enfs = getEnfermedades(*itr);
+	set<IDmut> mut_relacionadas;
+
+	// Borra las enfermedades asociadas si solo se asocian a la mutacion
+	// en cuestión
+	for (int i = 0; i < enfs.size(); i++) {
+		mut_relacionadas = getMutacionesEnf( enfs[i].getID());
+		// Si solo se relaciona con esta mutación
+		if (mut_relacionadas.size() == 1)
+			// Borra de EnfDB
+			EnfDB.erase(find_Enf(enfs[i].getID()));
 	}
+	// Borra de MutDB
+	if ((mutDB.erase(*itr)) > 0)
+		borrado = true;
+
 	return borrado;
 }
 
 int clinvar::size () {
 	return mutDB.size();
 }
-// Borra la mutación con identificador ID dentro de ClinVar,
-// si no lo encuentra devuelve eFnd()
+
 clinvar::iterator clinvar::find_Mut (IDmut ID) {
-	iterator devolver = mutDB.end();
-	for (iterator itr = mutDB.begin(); itr != mutDB.end() ; itr++) {
-		if ( (*itr).getID() == ID)
-			if (mutDB.erase(*itr) == 1)
+	iterator devolver( end() );	// Si no la encuentra devuelve eend()
+	for (iterator itr = begin(); itr != end() ; itr++) {
+		if ( (*itr).getID() == ID)	// Si coincide el id
 				devolver = itr;
 	}
 	return devolver;
 }
 
-
 clinvar::enfermedad_iterator  clinvar::find_Enf(IDenf ID) {
-
+	enfermedad_iterator devuelve = eend();	// Si no la encuentra devuelve eend()
+	for (enfermedad_iterator itr = ebegin(); itr != eend(); itr++)
+		if ( (*itr).second.getID() == ID)	// Si coincide el id
+			devuelve = itr;
+	return devuelve;
 }
-vector<enfermedad> clinvar::getEnfermedades(mutacion & mut) {
+
+vector<enfermedad> clinvar::getEnfermedades(const mutacion & mut) {
 	return mut.getEnfermedades();
 }
 
-// Devuelve una lista de los identificadores de enfermedad que contienen la palabra
-// keyword como parte del nombre de la enfermedad. Utilziar enfermedad.nameContains() para programarlo.
 list<IDenf> clinvar::getEnfermedades(string keyword) {
 	enfermedad_iterator itr;
 	list<IDenf> lista;
@@ -120,47 +205,32 @@ list<IDenf> clinvar::getEnfermedades(string keyword) {
 	return lista;
 }
 
-// Devuelve un conjunto ordenado (en orden creciente de IDmut) de todas las mutaciones que
-// se encuentran asociadas a la enfermedad con identificador ID. Si no tuviese ninguna enfermedad
-// asociada, devuelve el conjunto vacío.
 set<IDmut> clinvar::getMutacionesEnf (IDenf ID) {
 
 	set<IDmut> conjunto;
-	vector<enfermedad> aux;
 	multimap<IDenf, set<mutacion>::iterator >::iterator eitr;
 
 	for (eitr = IDenf_map.begin(); eitr != IDenf_map.end(); eitr++) {
-		if ( eitr->first == ID )
-			aux = (*eitr->second).getEnfermedades();
-	}
-	/*
-	vector<enfermedad> aux;
-	for (itr = ebegin(); itr != eend(); itr++) {
-		if ( itr->first == ID) {
-			aux = itr->second.getEnfermedades();
-		}	
-	}
-	*/
-	for (int i = 0; i < aux.size(); i++) {
-		conjunto.insert(aux[i].getID());
+		if ( eitr->first == ID ) 	// Si coincide el ID
+			conjunto.insert((*eitr->second).getID());		// Se inserta en el conjunto
 	}
 	return conjunto;
 }
 
-// Devuelve un conjunto de todas las mutaciones que se encuentran asociadas a un gen determinado
-// dado por ID. Si no tuviese ninguno, devuelve el conjunto vacío.
-// map<IDgen, list< set<mutacion>::iterator> > gen_map;
 set<IDmut> clinvar::getMutacionesGen (IDgen ID) {
 	set<IDmut> conjunto;
-
-	for (gen_iterator itr(gbegin()); itr != gend(); itr++) {
-		if (itr.getID() == ID) {
-			conjunto.insert((*itr).getID());
-		}
+	map<IDgen, list< set<mutacion>::iterator> >::iterator itr = gen_map.begin();
+	list < set<mutacion>::iterator >::iterator itr_list;
+	for (itr = gen_map.begin(); itr != gen_map.end(); itr++) {
+		// Si coincide el ID
+		if ( (*itr).first == ID )
+			for ( itr_list = ((*itr).second).begin() ; itr_list != (*itr).second.end(); itr_list++)
+				// Inserta en el conjunto los id
+				conjunto.insert((*(*itr_list)).getID());
 	}
+	return conjunto;
 }
 
-// Dado un string keyword devuelve todas las enfermedades cuyo nombre contiene keyword
 set<mutacion, clinvar::ProbMutaciones> clinvar::topKMutaciones (int k, string keyword) {
 	set<mutacion, ProbMutaciones> devuelve;
 	priority_queue<mutacion, vector<mutacion>, ProbMutaciones> cola;
@@ -169,75 +239,44 @@ set<mutacion, clinvar::ProbMutaciones> clinvar::topKMutaciones (int k, string ke
 	enfermedad_iterator itr;
 	unordered_set<IDmut> aux;
 
-
 	itr = ebegin();
 	// Mientras no se inserten los k primeros elementos
 	while ( devuelve.size() != k + 1) {
 		mut_asociadas = getMutacionesEnf( (*itr).second.getID() );
-		for (mut_itr = mut_asociadas.begin(); mut_itr != mut_asociadas.end() && devuelve.size() != k + 1; mut_itr++)
+		for (mut_itr = mut_asociadas.begin(); mut_itr != mut_asociadas.end() && aux.size() != k + 1; mut_itr++)
 			// Si la mutación contiene keyword
-			if ( (*find_Enf( *mut_itr )).second.nameContains(keyword) ) {
+			if ( ((*find_Enf( *mut_itr )).second.nameContains(keyword) ) ) {
+				// Se inserta en la cola
 				cola.push( *mut_itr );
+				// Se inserta en el conjunto
 				aux.insert( *mut_itr);
 			}
 		itr++;
 	}
+
 	for (; itr != eend(); itr++) {
 		mut_asociadas = getMutacionesEnf( (*itr).first );
 		for (mut_itr = mut_asociadas.begin(); mut_itr != mut_asociadas.end(); mut_itr++)
+			// Si contiene keyword
 			if ( (*find_Enf( *mut_itr )).second.nameContains(keyword) ) {
+				// Se inserta en la cola
 				cola.push( *mut_itr );
+				// Se inserta en el conjunto
 				aux.insert( *mut_itr );
+				// Se borra del conjunto el ultimo elemento de la cola
 				aux.erase( aux.find( cola.top().getID() ) );
+				// Se elimina el ultimo elemento de la cola
 				cola.pop();
 			}
 	}
 
+	// Pasa los datos de la cola al conjunto a devolver
 	for (int i = 0; i < cola.size(); i++) {
 		devuelve.insert(cola.top() );
 		cola.pop();
 	}
 
 	return devuelve;
-	
-	/*
-	multimap<IDenf, set<mutacion>::iterator>::iterator itr;
-
-	// Se insertan las k primeras mutaciones directamente en la cola
-	itr = IDenf_map.begin();
-	for (int i = 0; i <= k; itr++) {
-		if ( (*itr->second).nameContains(keyword) ) {
-			cola.push(*itr);
-			aux.insert( (*itr).getID() );
-			i++;
-		}
-	}
-
-	// Para las siguientes se comprueba si la nueva es mayor que la del tope
-	for (; itr != IDenf_map.end(); itr++) {
-
-		// Si la mutacion contiene keyword y su probabilidad es mayor que la del tope
-		if ( (*itr).nameContains(keyword) && (*itr).getProb > cola.top() ) {
-			// Si la mutación en cuestion no está en el conjunto auxiliar
-			if ( aux.find( (*itr).getID() ) == aux.end() ) {
-				// Se inserta en la cola y en el cjto auxiliar
-				cola.push( (*itr) );
-				aux.insert( (*itr).getID() );
-
-				// Se elimina la ultima de los dos conjuntos
-				cola.pop();
-				aux.erase( aux.find( cola.front().getID() ) );
-			}
-		}
-	}
-
-	for (int i = 0; i < cola.size(); i++) {
-		devuelve.insert(cola.front() );
-		cola.pop();
-	}
-
-	return devuelve;
-*/
 }
 
 
@@ -291,17 +330,31 @@ const mutacion & clinvar::iterator::operator*() {
 	return *it;
 }
 clinvar::iterator clinvar::lower_bound(string cromosoma, unsigned int posicion) {
-	/* iterator itr = end();
+
+	iterator itr = end();
 	bool encontrado = false;
 
-	for (iterator iter = begin(); iter != end() && !encontrado; iter++) {
-		if ( )
+	for (iterator ite = begin(); ite != end() && !encontrado; ite++) {
+		if ( ( (*ite).getChr() >= cromosoma) && ((*ite).getPos() >= posicion)) {
+			itr = ite;
+			encontrado = true;
+		}
 	}
-	*/
+	return itr;
 }
 
 clinvar::iterator clinvar::upper_bound(string cromosoma, unsigned int posicion) {
 
+	iterator itr = end();
+	bool encontrado = false;
+
+	for (iterator ite = begin(); ite != end() && !encontrado; ite++) {
+		if ( ( (*ite).getChr() >= cromosoma) ) {
+			itr = ite;
+			encontrado = true;
+		}
+	}
+	return itr;
 }
 // *******************      ENFERMEDAD_ITERATOR      **************************
 
@@ -321,14 +374,7 @@ clinvar::gen_iterator::gen_iterator(const map<IDgen, list < set<mutacion>::itera
 }
 
 clinvar::gen_iterator clinvar::gen_iterator::operator++() {
-	/*
 	this->itlist++;
-	if (this->itlist == gen_map->second.end()) {
-		this->itmap++;
-		this->itlist = this->itmap.begin();
-	}
-	return *this;
-	*/
 }
 
 bool clinvar::gen_iterator::operator==(const gen_iterator &x) const {
